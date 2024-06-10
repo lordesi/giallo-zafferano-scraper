@@ -19,6 +19,7 @@ def scraping_dolce(url):
             soup = BeautifulSoup(response.content, "html.parser")
             
             informazioni = {}
+            totale_ingredienti = {}
             ingredienti = []
             valori_nutrizionali = []
             preparazione = {}
@@ -37,15 +38,18 @@ def scraping_dolce(url):
             # Estrai ingredienti
             div_element2 = soup.find("div", class_="gz-ingredients gz-mBottom4x gz-outer")
             if div_element2:
-                dl_element = div_element2.find("dl", class_="gz-list-ingredients")
-                if dl_element:
-                    for dd_element in dl_element.find_all("dd", class_="gz-ingredient"):
-                        a_element = dd_element.find("a")
-                        span_element = dd_element.find("span")
-                        if a_element and span_element:
-                            ingrediente = a_element.text.strip().replace("\n", "").replace("\t", "").replace("\r", "")
-                            quantità = span_element.text.strip().replace("\n", "").replace("\t", "").replace("\r", "")
-                            ingredienti.append(f"{ingrediente} ({quantità})")
+                d1_elements = div_element2.find_all("dl", class_="gz-list-ingredients")
+                if d1_elements:
+                    for d1_element in d1_elements:
+                        titolo = d1_element.find("dt", class_="gz-title-ingredients gz-uppercase").text.strip()
+                        for dd_element in d1_element.find_all("dd", class_="gz-ingredient"):
+                            a_element = dd_element.find("a")
+                            span_element = dd_element.find("span")
+                            if a_element and span_element:
+                                ingrediente = a_element.text.strip().replace("\n", "").replace("\t", "").replace("\r", "")
+                                quantità = span_element.text.strip().replace("\n", "").replace("\t", "").replace("\r", "")
+                                ingredienti.append(f"{ingrediente} ({quantità})")
+                        totale_ingredienti[titolo] = ingredienti
 
             # Estrai nome della ricetta
             div_element3 = soup.find("div", class_="gz-title-content gz-innerdesktop")
@@ -56,7 +60,7 @@ def scraping_dolce(url):
             if div_element4:
                 ul_element = div_element4.find("ul")
                 if ul_element:
-                    il_elements = ul_element.find("li")
+                    il_elements = ul_element.find_all("li")
                     for il_element in il_elements:
                         span1 = il_element.find("span", class_="gz-list-macros-name").text.strip()
                         span2 = il_element.find("span", class_="gz-list-macros-unit").text.strip()
@@ -68,7 +72,7 @@ def scraping_dolce(url):
             current_text = ""
             div_element5 = soup.find("div", class_="gz-content-recipe gz-mBottom4x")
             if div_element5:
-                div_steps = div_element5.find("div", class_="gz-content-recipe-step")
+                div_steps = div_element5.find_all("div", class_="gz-content-recipe-step")
                 if div_steps:
                     for div_step in div_steps:
                         div_p = div_step.find("p")
@@ -84,7 +88,7 @@ def scraping_dolce(url):
 
 
             # Aggiungi alla DataFrame
-            giallo_zafferano.loc[len(giallo_zafferano)] = [h_element, ", ".join(ingredienti), ", ".join([f"{k}: {v}" for k, v in informazioni.items()]), ", ".join(valori_nutrizionali)]
+            giallo_zafferano.loc[len(giallo_zafferano)] = [h_element, ", ".join(totale_ingredienti), ", ".join([f"{k}: {v}" for k, v in informazioni.items()]), ", ".join(valori_nutrizionali)]
     except requests.exceptions.SSLError as e:
         print(f"Errore SSL: {e}")
     except requests.exceptions.RequestException as e:
