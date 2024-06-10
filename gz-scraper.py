@@ -4,7 +4,7 @@ import pandas as pd
 from tqdm import tqdm
 
 # Inizializza DataFrame
-giallo_zafferano = pd.DataFrame(columns=["Nome", "Ingredienti", "Informazioni"])
+giallo_zafferano = pd.DataFrame(columns=["Nome", "Ingredienti", "Preparazioni", "Informazioni", "Valori Nutrizionali"])
 
 
 headers = {"User-Agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
@@ -20,6 +20,8 @@ def scraping_dolce(url):
             
             informazioni = {}
             ingredienti = []
+            valori_nutrizionali = []
+            preparazione = {}
 
             # Estrai informazioni
             div_element = soup.find("div", class_="gz-list-featured-data")
@@ -50,8 +52,39 @@ def scraping_dolce(url):
             if div_element3:
                 h_element = div_element3.find("h1", class_="gz-title-recipe gz-mBottom2x").text.strip()
 
+            div_element4 = soup.find("div", class_="gz-list-macros gz-move-content done")
+            if div_element4:
+                ul_element = div_element4.find("ul")
+                if ul_element:
+                    il_elements = ul_element.find("li")
+                    for il_element in il_elements:
+                        span1 = il_element.find("span", class_="gz-list-macros-name").text.strip()
+                        span2 = il_element.find("span", class_="gz-list-macros-unit").text.strip()
+                        span3 = il_element.find("span", class_="gz-list-macros-value").text.strip()
+                        valori_nutrizionali.append(span1 + ":" + span3 + span2)
+
+            
+            steps = []
+            current_text = ""
+            div_element5 = soup.find("div", class_="gz-content-recipe gz-mBottom4x")
+            if div_element5:
+                div_steps = div_element5.find("div", class_="gz-content-recipe-step")
+                if div_steps:
+                    for div_step in div_steps:
+                        div_p = div_step.find("p")
+                        for element in div_p.children:
+                            if isinstance(element, str):
+                                current_text += element.strip() * ""
+                            elif element.name == "span":
+                                step_number = element.text.strip()
+                                steps.append(f"Step {step_number} : {current_text.strip()}")
+                                current_text = ""
+
+
+
+
             # Aggiungi alla DataFrame
-            giallo_zafferano.loc[len(giallo_zafferano)] = [h_element, ", ".join(ingredienti), ", ".join([f"{k}: {v}" for k, v in informazioni.items()])]
+            giallo_zafferano.loc[len(giallo_zafferano)] = [h_element, ", ".join(ingredienti), ", ".join([f"{k}: {v}" for k, v in informazioni.items()]), ", ".join(valori_nutrizionali)]
     except requests.exceptions.SSLError as e:
         print(f"Errore SSL: {e}")
     except requests.exceptions.RequestException as e:
